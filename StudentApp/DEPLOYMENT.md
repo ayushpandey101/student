@@ -1,10 +1,9 @@
 # CI/CD and deployment
 
-The workflow at `../.github/workflows/ci-cd.yml` runs Maven verification and JaCoCo coverage for pull requests and pushes to `main`. Pushes to `main` also run SonarQube analysis, build and push the Docker image, and deploy it to the Ubuntu server over SSH.
+The workflow at `../.github/workflows/ci-cd.yml` runs Maven verification and JaCoCo coverage for pull requests and pushes to `main`. Pushes to `main` also build and push the Docker image, then deploy it to the Ubuntu server over SSH.
 
 Configure these GitHub Actions repository secrets before pushing to `main`:
 
-- `SONAR_HOST_URL` and `SONAR_TOKEN`
 - `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`
 - `SERVER_HOST`, `SERVER_USER`, and `SERVER_SSH_KEY`
 - `MYSQL_URL`, `MYSQL_USERNAME`, and `MYSQL_PASSWORD`

@@ -1,0 +1,380 @@
+GitHub – Source code management
+
+Java SDK 21 – Java environment
+Maven – Build automation
+JUnit 5 – Unit testing
+SonarQube – Static code analysis and quality gate
+Docker – Image creation
+Docker Hub – Image repository
+Ubuntu Server – Deployment
+
+===========================================================================================
+
+
+Java 21 compilation
+JUnit 5 + Mockito tests - Create Test Cases 
+JaCoCo coverage report
+SonarQube static code analysis
+SonarQube Quality Gate validation
+Docker image creation and push
+Ubuntu server deployment
+
+=============================================================================================
+
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Project Information -->
+    <groupId>com.example</groupId>
+    <artifactId>springboot-docker-demo</artifactId>
+    <version>1.0.0</version>
+
+    <name>Spring Boot Docker Demo</name>
+    <description>
+        Spring Boot CI CD Project with SonarQube and Docker
+    </description>
+
+    <!-- Spring Boot Parent -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.6</version>
+        <relativePath/>
+    </parent>
+
+    <!-- Properties -->
+    <properties>
+
+        <java.version>21</java.version>
+
+        <sonar.projectKey>springboot-docker-demo</sonar.projectKey>
+
+        <sonar.host.url>
+            ${env.SONAR_HOST_URL}
+        </sonar.host.url>
+
+        <sonar.token>
+            ${env.SONAR_TOKEN}
+        </sonar.token>
+
+        <jacoco.version>0.8.13</jacoco.version>
+
+    </properties>
+
+    <!-- Dependencies -->
+    <dependencies>
+
+        <!-- Spring Boot Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Testing: JUnit 5 and Mockito -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <!-- Build Plugins -->
+    <build>
+
+        <plugins>
+
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Maven Compiler Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>21</release>
+                </configuration>
+            </plugin>
+
+            <!-- Maven Surefire Plugin: JUnit Tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <useModulePath>false</useModulePath>
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo: Code Coverage -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+
+                <executions>
+
+                    <!-- Prepare Agent -->
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+
+                    <!-- Generate Coverage Report -->
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+
+                </executions>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+</project>
+
+
+
+
+
+==============================================================================================
+name: Spring Boot CI CD with SonarQube
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build-test-scan-docker-deploy:
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+
+      # 1. Checkout source code
+      - name: Checkout GitHub Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Setup Java 21
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # 3. Maven build and JUnit testing
+      - name: Maven Build and Test
+        run: mvn -B clean verify
+
+      # 4. SonarQube code quality analysis
+      - name: SonarQube Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=springboot-docker-demo \
+            -Dsonar.qualitygate.wait=true
+
+      # 5. Setup Docker Buildx
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 6. Login to Docker Hub
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 7. Build and Push Docker Image
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/springboot-demo:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/springboot-demo:${{ github.sha }}
+
+      # 8. Deploy application on Ubuntu Server
+      - name: Deploy Spring Boot Application
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/springboot-demo:${{ github.sha }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          envs: IMAGE
+          script: |
+            docker pull $IMAGE
+
+            docker stop springboot-app || true
+
+            docker rm springboot-app || true
+
+            docker run -d \
+              --name springboot-app \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              $IMAGE
+
+            docker image prune -f
+
+===================================================================================
+
+Test file
+package com.example.student.service;
+
+import com.example.student.entity.Student;
+import com.example.student.repository.StudentRepository;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class StudentServiceTest {
+
+    // Mock Repository
+    @Mock
+    private StudentRepository studentRepository;
+
+    // Inject Mock into Service
+    @InjectMocks
+    private StudentService studentService;
+
+    private Student student;
+
+    @BeforeEach
+    void setUp() {
+
+        student = new Student();
+
+        student.setId(1L);
+        student.setName("Rahul");
+        student.setEmail("rahul@gmail.com");
+        student.setCourse("Java");
+    }
+
+    // Test Case 1: Save Student
+    @Test
+    void testSaveStudent() {
+
+        when(studentRepository.save(student))
+                .thenReturn(student);
+
+        Student result = studentService.saveStudent(student);
+
+        assertNotNull(result);
+
+        assertEquals(1L, result.getId());
+
+        assertEquals("Rahul", result.getName());
+
+        assertEquals("rahul@gmail.com", result.getEmail());
+
+        assertEquals("Java", result.getCourse());
+
+        verify(studentRepository, times(1)).save(student);
+    }
+
+    // Test Case 2: Get All Students
+    @Test
+    void testGetAllStudents() {
+
+        Student student2 = new Student();
+
+        student2.setId(2L);
+        student2.setName("Priya");
+        student2.setEmail("priya@gmail.com");
+        student2.setCourse("Spring Boot");
+
+        List<Student> studentList =
+                Arrays.asList(student, student2);
+
+        when(studentRepository.findAll())
+                .thenReturn(studentList);
+
+        List<Student> result =
+                studentService.getAllStudents();
+
+        assertNotNull(result);
+
+        assertEquals(2, result.size());
+
+        assertEquals("Rahul", result.get(0).getName());
+
+        assertEquals("Priya", result.get(1).getName());
+
+        verify(studentRepository, times(1)).findAll();
+    }
+
+    // Test Case 3: Get All Students - Empty List
+    @Test
+    void testGetAllStudentsWhenEmpty() {
+
+        when(studentRepository.findAll())
+                .thenReturn(Arrays.asList());
+
+        List<Student> result =
+                studentService.getAllStudents();
+
+        assertNotNull(result);
+
+        assertTrue(result.isEmpty());
+
+        verify(studentRepository, times(1)).findAll();
+    }
+
+    // Test Case 4: Delete Student
+    @Test
+    void testDeleteStudent() {
+
+        Long studentId = 1L;
+
+        doNothing().when(studentRepository)
+                .deleteById(studentId);
+
+        studentService.deleteStudent(studentId);
+
+        verify(studentRepository, times(1))
+                .deleteById(studentId);
+    }
+
+}
+

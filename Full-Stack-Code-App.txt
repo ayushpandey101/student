@@ -1,0 +1,597 @@
+student-management/
+│
+├── src/
+│   │
+│   ├── main/
+│   │   │
+│   │   ├── java/
+│   │   │   └── com/example/student/
+│   │   │       │
+│   │   │       ├── StudentManagementApplication.java
+│   │   │       │
+│   │   │       ├── controller/
+│   │   │       │   └── StudentController.java
+│   │   │       │
+│   │   │       ├── entity/
+│   │   │       │   └── Student.java
+│   │   │       │
+│   │   │       ├── repository/
+│   │   │       │   └── StudentRepository.java
+│   │   │       │
+│   │   │       └── service/
+│   │   │           └── StudentService.java
+│   │   │
+│   │   └── resources/
+│   │       │
+│   │       ├── templates/
+│   │       │   └── students.html
+│   │       │
+│   │       ├── static/
+│   │       │   └── css/
+│   │       │       └── style.css
+│   │       │
+│   │       └── application.properties
+│   │
+│   └── test/
+│
+├── pom.xml
+└── README.md
+==========================================================================================
+
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.6</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.example</groupId>
+    <artifactId>student-management</artifactId>
+    <version>1.0.0</version>
+
+    <name>Student Management</name>
+    <description>Simple Full Stack Spring Boot Application</description>
+
+    <properties>
+        <java.version>21</java.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- Spring Boot Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Thymeleaf HTML Template -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
+        <!-- Spring Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- MySQL Driver -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- JUnit 5 and Mockito -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
+===============================================================================================
+
+CREATE DATABASE student_db;
+
+USE student_db;
+
+====================================================================================
+
+# Application Name
+spring.application.name=student-management
+
+# Server Port
+server.port=8080
+
+# MySQL Database Configuration
+spring.datasource.url=jdbc:mysql://localhost:3306/student_db
+spring.datasource.username=root
+spring.datasource.password=YOUR_MYSQL_PASSWORD
+
+# MySQL Driver
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# Hibernate Configuration
+spring.jpa.hibernate.ddl-auto=update
+
+# Display SQL Queries
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# Thymeleaf
+spring.thymeleaf.cache=false
+
+=================================================================================
+
+package com.example.student;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class StudentManagementApplication {
+
+    public static void main(String[] args) {
+
+        SpringApplication.run(
+            StudentManagementApplication.class, args
+        );
+
+        System.out.println("Student Application Started!");
+
+    }
+}
+
+==========================================================================================
+
+package com.example.student.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
+@Entity
+@Table(name = "students")
+public class Student {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotBlank(message = "Name is required")
+    private String name;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Enter a valid email")
+    private String email;
+
+    @NotBlank(message = "Please select a course")
+    private String course;
+
+    // Default constructor
+    public Student() {
+    }
+
+    // Getters and Setters
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getCourse() {
+        return course;
+    }
+
+    public void setCourse(String course) {
+        this.course = course;
+    }
+}
+
+=========================================================================================
+
+package com.example.student.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.student.entity.Student;
+
+public interface StudentRepository
+        extends JpaRepository<Student, Long> {
+
+}
+
+=====================================================================================
+
+package com.example.student.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.example.student.entity.Student;
+import com.example.student.repository.StudentRepository;
+
+@Service
+public class StudentService {
+
+    private final StudentRepository studentRepository;
+
+    public StudentService(StudentRepository studentRepository) {
+        this.studentRepository = studentRepository;
+    }
+
+    // Save Student
+    public Student saveStudent(Student student) {
+
+        return studentRepository.save(student);
+    }
+
+    // Get All Students
+    public List<Student> getAllStudents() {
+
+        return studentRepository.findAll();
+    }
+
+    // Delete Student
+    public void deleteStudent(Long id) {
+
+        studentRepository.deleteById(id);
+    }
+}
+
+==========================================================================================
+
+package com.example.student.controller;
+
+import com.example.student.entity.Student;
+import com.example.student.service.StudentService;
+
+import jakarta.validation.Valid;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+
+@Controller
+public class StudentController {
+
+    private final StudentService studentService;
+
+    public StudentController(StudentService studentService) {
+        this.studentService = studentService;
+    }
+
+    // Display Registration Form
+    @GetMapping("/")
+    public String showForm(Model model) {
+
+        model.addAttribute("student", new Student());
+
+        model.addAttribute(
+            "students",
+            studentService.getAllStudents()
+        );
+
+        return "students";
+    }
+
+    // Save Student Details
+    @PostMapping("/save")
+    public String saveStudent(
+            @Valid @ModelAttribute("student") Student student,
+            BindingResult result,
+            Model model) {
+
+        if (result.hasErrors()) {
+
+            model.addAttribute(
+                "students",
+                studentService.getAllStudents()
+            );
+
+            return "students";
+        }
+
+        studentService.saveStudent(student);
+
+        return "redirect:/";
+    }
+
+    // Delete Student
+    @GetMapping("/delete/{id}")
+    public String deleteStudent(@PathVariable Long id) {
+
+        studentService.deleteStudent(id);
+
+        return "redirect:/";
+    }
+}
+
+=========================================================================================
+src/main/resources/templates/students.html
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <title>Student Registration</title>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Student Registration</h1>
+
+    <div class="form-box">
+
+        <h2>Enter Student Details</h2>
+
+        <form th:action="@{/save}"
+              th:object="${student}"
+              method="post">
+
+            <label>Student Name</label>
+
+            <input type="text"
+                   th:field="*{name}"
+                   placeholder="Enter student name">
+
+            <p class="error"
+               th:if="${#fields.hasErrors('name')}"
+               th:errors="*{name}">
+            </p>
+
+            <label>Email Address</label>
+
+            <input type="email"
+                   th:field="*{email}"
+                   placeholder="Enter email">
+
+            <p class="error"
+               th:if="${#fields.hasErrors('email')}"
+               th:errors="*{email}">
+            </p>
+
+            <label>Select Course</label>
+
+            <select th:field="*{course}">
+
+                <option value="">Select Course</option>
+
+                <option value="Java">Java</option>
+
+                <option value="Spring Boot">Spring Boot</option>
+
+                <option value="Python">Python</option>
+
+                <option value="Angular">Angular</option>
+
+            </select>
+
+            <p class="error"
+               th:if="${#fields.hasErrors('course')}"
+               th:errors="*{course}">
+            </p>
+
+            <button type="submit">
+                Register Student
+            </button>
+
+        </form>
+
+    </div>
+
+    <div class="table-box">
+
+        <h2>Registered Students</h2>
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Course</th>
+                    <th>Action</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr th:each="s : ${students}">
+
+                    <td th:text="${s.id}"></td>
+
+                    <td th:text="${s.name}"></td>
+
+                    <td th:text="${s.email}"></td>
+
+                    <td th:text="${s.course}"></td>
+
+                    <td>
+                        <a th:href="@{/delete/{id}(id=${s.id})}"
+                           onclick="return confirm('Delete this student?')">
+                            Delete
+                        </a>
+                    </td>
+
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(students)}">
+
+                    <td colspan="5">
+                        No student records found
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+</body>
+</html>
+
+===========================================================================================
+
+src/main/resources/static/css/style.css
+
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f5f9;
+    margin: 0;
+    padding: 30px;
+}
+
+.container {
+    max-width: 950px;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+    color: #243b64;
+}
+
+h2 {
+    color: #243b64;
+}
+
+.form-box,
+.table-box {
+    background: white;
+    padding: 25px;
+    margin-bottom: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px #ddd;
+}
+
+label {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+button {
+    margin-top: 20px;
+    padding: 12px 20px;
+    background: #2463eb;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1747b0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background: #2463eb;
+    color: white;
+}
+
+.error {
+    color: red;
+    font-size: 13px;
+}
+
+td a {
+    color: red;
+    text-decoration: none;
+}
+
+======================================================================================
+
+
